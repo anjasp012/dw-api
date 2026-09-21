@@ -10,11 +10,16 @@ from app.core.profanity import contains_profanity
 router = APIRouter()
 
 
-@router.post("/", response_model=WishResponse)
+@router.post("", response_model=WishResponse, summary="Kirim Aspirasi Pengunjung")
+@router.post("/", response_model=WishResponse, include_in_schema=False)
 def submit_wish(
     payload: WishCreate, 
     db: Session = Depends(get_db)
 ):
+    """
+    Menerima input aspirasi/harapan dari pengunjung di layar Unity Dream Wall.
+    Melakukan sanitasi dan penyaringan kata-kata tidak pantas (*profanity filter*).
+    """
     clean_text = payload.text.strip()
     if not clean_text:
         raise HTTPException(status_code=400, detail="Teks aspirasi tidak boleh kosong")
@@ -54,10 +59,14 @@ def submit_wish(
     return new_wish
 
 
-@router.get("/approved", response_model=List[WishResponse])
+@router.get("/approved", response_model=List[WishResponse], summary="Ambil Aspirasi yang Disetujui (Tampilan Layar)")
 def get_approved_wishes(
     db: Session = Depends(get_db)
 ):
+    """
+    Mengambil daftar aspirasi berstatus 'approved' untuk dirender di layar utama Unity.
+    Batas kuota jumlah aspirasi mengikuti konfigurasi pengaturan dari CMS.
+    """
     # Batas kuota tampilan murni diambil dari database setting CMS
     setting = db.query(AppSetting).filter(AppSetting.key == "frontend_display_limit").first()
     limit = int(setting.value) if setting and setting.value.isdigit() else 50

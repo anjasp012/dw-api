@@ -48,3 +48,4 @@ class RefreshTokenResponse(BaseModel):
 class ErrorResponse(BaseModel):
     responseCode: str = "4010000"
     responseMessage: str = "Invalid username or password"
+
