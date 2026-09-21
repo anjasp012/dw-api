@@ -13,26 +13,37 @@ cms_bearer_scheme = HTTPBearer(
     description="Masukkan JWT Token (didapatkan dari POST /api/v1/auth/login)"
 )
 
-# 🖥️ Unity / Dream Wall Display API Key Header
+# 🖥️ Dream Wall Access Token Header (from .env)
+wall_token_header = APIKeyHeader(
+    name="X-Access-Token",
+    auto_error=False
+)
+
 unity_key_header = APIKeyHeader(
     name="X-API-Key",
     auto_error=False
 )
 
 
-def verify_unity_api_key(
+def verify_wall_access_token(
+    access_token: Optional[str] = Security(wall_token_header),
     api_key: Optional[str] = Security(unity_key_header)
 ) -> str:
     """
-    Validasi header X-API-Key untuk semua request Unity / Layar Dream Wall.
-    Nilai harus cocok dengan UNITY_API_KEY di file .env.
+    Validasi header X-Access-Token untuk semua request Layar Dream Wall / Unity.
+    Nilai harus cocok dengan ACCESS_TOKEN di file .env.
     """
-    if not api_key or api_key != settings.UNITY_API_KEY:
+    client_token = access_token or api_key
+    if not client_token or client_token != settings.ACCESS_TOKEN:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Akses ditolak: Header 'X-API-Key' tidak valid atau tidak disertakan."
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Akses ditolak: Header 'X-Access-Token' tidak valid atau tidak disertakan."
         )
-    return api_key
+    return client_token
+
+
+# Alias fungsi untuk kompatibilitas
+verify_unity_api_key = verify_wall_access_token
 
 
 def get_current_admin(
