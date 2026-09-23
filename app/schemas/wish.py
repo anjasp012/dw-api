@@ -7,11 +7,6 @@ class WishCreate(BaseModel):
     age_range: Optional[str] = None
     text: str
 
-    # Fallback aliases
-    visitor_name: Optional[str] = None
-    nama: Optional[str] = None
-    rentang_usia: Optional[str] = None
-
     @model_validator(mode="before")
     @classmethod
     def normalize_aliases(cls, data):
@@ -20,6 +15,8 @@ class WishCreate(BaseModel):
                 data["name"] = data.get("visitor_name") or data.get("nama")
             if not data.get("age_range"):
                 data["age_range"] = data.get("rentang_usia")
+            if not data.get("text"):
+                data["text"] = data.get("text_aspirasi") or data.get("aspirasi") or ""
         return data
 
 class WishResponse(BaseModel):
