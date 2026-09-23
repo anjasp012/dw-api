@@ -24,12 +24,19 @@ def submit_wish(
     if not clean_text:
         raise HTTPException(status_code=400, detail="Teks aspirasi tidak boleh kosong")
 
+    name = payload.name.strip() if payload.name else None
+    age_range = payload.age_range.strip() if payload.age_range else None
+
     # Saring kata kasar / tidak pantas
     is_profane, detected_words = contains_profanity(clean_text)
+    if not is_profane and name:
+        is_profane, detected_words = contains_profanity(name)
 
     if is_profane:
         # Tetap disimpan ke database dengan status 'rejected' untuk audit/log
         rejected_wish = Wish(
+            name=name,
+            age_range=age_range,
             text=clean_text,
             status="rejected"
         )
@@ -49,6 +56,8 @@ def submit_wish(
 
     # Jika bersih, simpan dengan status 'approved' dan kembalikan HTTP Status 200
     new_wish = Wish(
+        name=name,
+        age_range=age_range,
         text=clean_text,
         status="approved"
     )

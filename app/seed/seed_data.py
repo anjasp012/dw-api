@@ -47,9 +47,9 @@ def seed_database():
         if wishes_count == 0:
             print("[+] Seeding Initial Sample Wishes...")
             sample_wishes = [
-                Wish(text="Semoga riset kelautan Indonesia semakin maju dan mandiri!", status="approved"),
-                Wish(text="Harapan saya BRIN bisa mendukung inovasi teknologi pertanian berbasis AI.", status="approved"),
-                Wish(text="Maju terus peneliti muda Indonesia untuk kemajuan bangsa.", status="approved"),
+                Wish(name="Budi Santoso", age_range="26-35 tahun", text="Semoga riset kelautan Indonesia semakin maju dan mandiri!", status="approved"),
+                Wish(name="Siti Rahma", age_range="18-25 tahun", text="Harapan saya BRIN bisa mendukung inovasi teknologi pertanian berbasis AI.", status="approved"),
+                Wish(name="Dr. Hendra", age_range="36-45 tahun", text="Maju terus peneliti muda Indonesia untuk kemajuan bangsa.", status="approved"),
             ]
             db.add_all(sample_wishes)
             db.commit()

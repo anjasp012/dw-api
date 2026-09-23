@@ -6,6 +6,8 @@ class Wish(Base):
     __tablename__ = "wishes"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
+    name = Column(String(255), nullable=True)
+    age_range = Column(String(50), nullable=True)
     text = Column(Text, nullable=False)
     status = Column(String(20), default="approved")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
