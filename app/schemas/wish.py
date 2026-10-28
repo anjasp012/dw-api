@@ -1,5 +1,5 @@
 from pydantic import BaseModel, model_validator
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 class WishCreate(BaseModel):
@@ -26,6 +26,16 @@ class WishResponse(BaseModel):
     text: str
     status: str
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class WishPaginationResponse(BaseModel):
+    items: List[WishResponse]
+    total: int
+    page: int
+    pageSize: int
+    totalPages: int
 
     class Config:
         from_attributes = True

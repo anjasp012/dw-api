@@ -1,13 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from typing import List, Optional
+from sqlalchemy import func, or_
+from typing import List, Optional, Union
+import math
 from pydantic import BaseModel
 from app.db.session import get_db
 from app.models.wish import Wish
 from app.models.user import User
 from app.models.setting import AppSetting
-from app.schemas.wish import WishResponse
+from app.schemas.wish import WishResponse, WishPaginationResponse
 from app.api.v1.deps import get_current_admin
 
 router = APIRouter()
@@ -30,21 +31,62 @@ class SettingsUpdate(BaseModel):
 # 📬 1. MODERASI ASPIRASI PENGUNJUNG
 # =========================================================================
 
-@router.get("/wishes", response_model=List[WishResponse], summary="Daftar Semua Aspirasi")
+@router.get("/wishes", response_model=Union[WishPaginationResponse, List[WishResponse]], summary="Daftar Semua Aspirasi")
 def get_all_wishes(
+    response: Response,
     status: Optional[str] = Query(None, description="Filter status: approved, rejected, pending"),
-    limit: int = Query(50, le=200, description="Batas jumlah data"),
+    search: Optional[str] = Query(None, description="Pencarian kata kunci (nama, teks, usia, ID)"),
+    page: Optional[int] = Query(None, ge=1, description="Nomor halaman (1-based)"),
+    pageSize: Optional[int] = Query(None, ge=1, le=500, description="Ukuran halaman"),
+    limit: int = Query(50, le=500, description="Batas jumlah data (legacy/offset)"),
     offset: int = Query(0, ge=0, description="Offset data"),
+    paginated: bool = Query(False, description="Set True untuk response berformat paginasi"),
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin)
 ):
     """
-    Mengambil seluruh daftar aspirasi pengunjung dengan opsi filter status dan paginasi.
+    Mengambil seluruh daftar aspirasi pengunjung dengan opsi filter status, pencarian, dan paginasi.
     """
     query = db.query(Wish)
     if status:
         query = query.filter(Wish.status == status)
-    return query.order_by(Wish.created_at.desc()).offset(offset).limit(limit).all()
+
+    if search and search.strip():
+        s = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                Wish.name.ilike(s),
+                Wish.text.ilike(s),
+                Wish.age_range.ilike(s),
+                Wish.id.ilike(s),
+            )
+        )
+
+    total = query.count()
+    response.headers["X-Total-Count"] = str(total)
+
+    if page is not None:
+        effective_limit = pageSize or limit
+        effective_offset = (page - 1) * effective_limit
+        current_page = page
+    else:
+        effective_limit = pageSize or limit
+        effective_offset = offset
+        current_page = (offset // effective_limit) + 1 if effective_limit > 0 else 1
+
+    rows = query.order_by(Wish.created_at.desc()).offset(effective_offset).limit(effective_limit).all()
+
+    if paginated or page is not None:
+        total_pages = math.ceil(total / effective_limit) if effective_limit > 0 else 1
+        return {
+            "items": rows,
+            "total": total,
+            "page": current_page,
+            "pageSize": effective_limit,
+            "totalPages": total_pages,
+        }
+
+    return rows
 
 
 @router.patch("/wishes/{wish_id}/status", response_model=WishResponse, summary="Ubah Status Aspirasi")
